@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  clipster-god-mode:
+    build: .
+    container_name: clipster-automation
+    volumes:
+      - ./config:/app/config
+      - ./output:/app/output
+      - ./logs:/app/logs
+      - ./assets:/app/assets
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DISPLAY=:99
+    ports:
+      - "8501:8501"  # Streamlit dashboard
+      - "8080:8080"  # API server
+    command: python main.py god --campaigns-dir config/campaigns
+    
+  redis:
+    image: redis:alpine
+    container_name: clipster-redis
+    
+  scheduler:
+    build: .
+    container_name: clipster-scheduler
+    depends_on:
+      - redis
+    command: python -m src.upload.scheduler_worker
+    
+  dashboard:
+    build: .
+    container_name: clipster-dashboard
+    ports:
+      - "8501:8501"
+    command: streamlit run dashboard/app.py --server.port=8501 --server.address=0.0.0.0
